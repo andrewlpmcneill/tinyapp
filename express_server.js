@@ -69,7 +69,7 @@ app.get("/urls/:id", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
-  const short = generateRandomString();         // Respond with 'Ok' (we will replace this)
+  const short = generateRandomString();
   urlDatabase[short] = req.body.longURL;
   const templateVars = { shortURL: short, longURL: urlDatabase[short], username: req.cookies["username"] };
   res.render("urls_show", templateVars);
