@@ -41,7 +41,7 @@ const generateRandomString = () => {
 const emailLookup = (email) => {
   for (let user in users) {
     if (users[user]['email'] === email) {
-      return true;
+      return user;
     }
   }
   return false;
@@ -105,18 +105,26 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  if (!emailLookup(req.body.email)) {
+    res.status(403).send("The email you entered isn't connected to an account.");
+    return;
+  }
+  const user = emailLookup(req.body.email);
+  if (users[user]['password'] !== req.body.password) {
+    res.status(403).send("The password you entered is incorrect.");
+  }
+  res.cookie('user_id', user);
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
 app.post("/register", (req, res) => {
   if (!req.body.email || !req.body.password || emailLookup(req.body.email)) {
-    res.status(400).send('Login details empty or user already exists');
+    res.status(400).send('Registration details empty, or the user already exists.');
   }
   const id = generateRandomString();
   users[id] = {
