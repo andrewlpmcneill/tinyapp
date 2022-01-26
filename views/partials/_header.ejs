@@ -11,8 +11,10 @@
       </div>
     </div>
   <% if (!user) { %>
-    <form class="form" method="POST" action="/login">
-      <input type="text" class="form-control-sm nav-item" name="username"></input>
+    <form class="form" method="GET" action="/register">
+      <button style="margin-right: 10px" type="submit" class="btn btn-outline-dark">Register</button>
+    </form>
+    <form class="form" method="GET" action="/login">
       <button type="submit" class="btn btn-outline-dark">Login</button>
     </form>
   <% } else { %>
