@@ -38,6 +38,15 @@ const generateRandomString = () => {
   return output;
 };
 
+const emailLookup = (email) => {
+  for (let user in users) {
+    if (users[user]['email'] === email) {
+      return true;
+    }
+  }
+  return false;
+};
+
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -100,6 +109,9 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
+  if (!req.body.email || !req.body.password || emailLookup(req.body.email)) {
+    res.status(400).send('Login details empty or user already exists');
+  }
   const id = generateRandomString();
   users[id] = {
     email: req.body.email,
