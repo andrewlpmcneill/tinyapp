@@ -9,6 +9,8 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {};
+
 const generateRandomString = () => {
   let output = '';
   while (output.length < 6) {
@@ -44,31 +46,27 @@ app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
-
-// app.get("/hello", (req, res) => {
-//   res.send("<html><body>Hello <b>World</b></body></html>\n");
-// });
-
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  const user = req.cookies["user_id"];
+  const templateVars = { urls: urlDatabase, user: users[user] };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const user = req.cookies["user_id"];
+  const templateVars = { user: users[user] };
   res.render("urls_new", templateVars);
 });
 
 app.get("/register", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const user = req.cookies["user_id"];
+  const templateVars = { user: users[user] };
   res.render("register_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"] };
+  const user = req.cookies["user_id"];
+  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id], user: users[user] };
   res.render("urls_show", templateVars);
 });
 
@@ -76,7 +74,8 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls", (req, res) => {
   const short = generateRandomString();
   urlDatabase[short] = req.body.longURL;
-  const templateVars = { shortURL: short, longURL: urlDatabase[short], username: req.cookies["username"] };
+  const user = req.cookies["user_id"];
+  const templateVars = { shortURL: short, longURL: urlDatabase[short], user: users[user] };
   res.render("urls_show", templateVars);
 });
 
@@ -101,7 +100,13 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  res.redirect("/register");
+  const id = generateRandomString();
+  users[id] = {
+    email: req.body.email,
+    password: req.body.password
+  };
+  res.cookie('user_id', id);
+  res.redirect("/urls");
 });
 
 app.get("/u/:shortURL", (req, res) => {
