@@ -1,14 +1,29 @@
+// SETUP, IMPORT DEPENDENCIES
 const express = require("express");
 const cookieSession = require("cookie-session");
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
-
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
+app.set("view engine", "ejs");
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
+//// CUSTOM MIDDLEWARE, KEEPS ROUTES DRY
+const currentUser = (req, res, next) => {
+  const userId = req.session['user_id'];
+  req.userID = userId;
+  req.currentUser = users[userId];
+  next();
+};
+app.use(currentUser);
 
+// DATA OBJECTS
 const urlDatabase = {};
-
 const users = {};
+
 
 const generateRandomString = () => {
   let output = '';
@@ -56,21 +71,10 @@ const urlsForUser = (id) => {
   return userURLs;
 };
 
-const currentUser = (req, res, next) => {
-  const userId = req.session['user_id'];
-  req.userID = userId;
-  req.currentUser = users[userId];
-  next();
-};
 
-app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieSession({
-  name: 'session',
-  keys: ['key1', 'key2']
-}));
-app.use(currentUser);
 
+
+// ROUTES
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
