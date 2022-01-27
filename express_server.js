@@ -44,6 +44,16 @@ const emailLookup = (email) => {
   return false;
 };
 
+const urlsForUser = (id) => {
+  const userURLs = {};
+  for (const url in urlDatabase) {
+    if (urlDatabase[url]['userID'] === id) {
+      userURLs[url] = urlDatabase[url]['longURL'];
+    }
+  }
+  return userURLs;
+};
+
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -54,7 +64,7 @@ app.get("/", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const user = req.cookies["user_id"];
-  const templateVars = { urls: urlDatabase, user: users[user], id: user };
+  const templateVars = { urls: urlsForUser(user), user: users[user], id: user };
   res.render("urls_index", templateVars);
 });
 
@@ -81,7 +91,10 @@ app.get("/login", (req, res) => {
 
 app.get("/urls/:id", (req, res) => {
   const user = req.cookies["user_id"];
-  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], user: users[user] };
+  if (!users[user] || urlDatabase[req.params.id]['userID'] !== user) {
+    res.redirect("/urls");
+  }
+  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], user: users[user], id: user };
   res.render("urls_show", templateVars);
 });
 
@@ -99,6 +112,10 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  const user = req.cookies["user_id"];
+  if (!users[user] || urlDatabase[req.params.id]['userID'] === user) {
+    res.status(403).send('You can only delete URLs that belong to you.');
+  }
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
