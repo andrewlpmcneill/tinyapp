@@ -1,5 +1,5 @@
 const express = require("express");
-const cookieParser = require("cookie-parser");
+const cookieSession = require("cookie-session");
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 
@@ -58,20 +58,23 @@ const urlsForUser = (id) => {
 
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
 
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
 app.get("/urls", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   const templateVars = { urls: urlsForUser(user), user: users[user], id: user };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   if (!users[user]) {
     res.redirect('/login');
   }
@@ -80,19 +83,19 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   const templateVars = { user: users[user] };
   res.render("register_new", templateVars);
 });
 
 app.get("/login", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   const templateVars = { user: users[user] };
   res.render("login_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   if (!users[user] || urlDatabase[req.params.id]['userID'] !== user) {
     res.redirect("/urls");
   }
@@ -102,7 +105,7 @@ app.get("/urls/:id", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   if (!users[user]) {
     res.status(403).send('You must be logged in to create new URLs.');
   }
@@ -114,7 +117,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user = req.cookies["user_id"];
+  const user = req.session['user_id'];
   if (!users[user] || urlDatabase[req.params.shortURL]['userID'] !== user) {
     res.status(403).send('You can only delete URLs that belong to you.');
   }
@@ -124,27 +127,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 app.post("/urls/:shortURL", (req, res) => {
   urlDatabase[req.params.shortURL]['longURL'] = req.body.newURL;
-  res.redirect("/urls");
-});
-
-app.post("/login", (req, res) => {
-  if (!emailLookup(req.body.email)) {
-    res.status(403).send("The email you entered isn't connected to an account.");
-    return;
-  }
-  const user = emailLookup(req.body.email);
-  console.log('DATA');
-  console.log(users[user]['password']);
-  console.log('DATA');
-  if (!bcrypt.compareSync(req.body.password, users[user]['password'])) {
-    res.status(403).send("The password you entered is incorrect.");
-  }
-  res.cookie('user_id', user);
-  res.redirect("/urls");
-});
-
-app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
@@ -159,7 +141,25 @@ app.post("/register", (req, res) => {
     email: req.body.email,
     password: hashedPassword
   };
-  res.cookie('user_id', id);
+  req.session['user_id'] = id;
+  res.redirect("/urls");
+});
+
+app.post("/login", (req, res) => {
+  if (!emailLookup(req.body.email)) {
+    res.status(403).send("The email you entered isn't connected to an account.");
+    return;
+  }
+  const user = emailLookup(req.body.email);
+  if (!bcrypt.compareSync(req.body.password, users[user]['password'])) {
+    res.status(403).send("The password you entered is incorrect.");
+  }
+  req.session['user_id'] = user;
+  res.redirect("/urls");
+});
+
+app.post("/logout", (req, res) => {
+  req.session['user_id'] = null;
   res.redirect("/urls");
 });
 
