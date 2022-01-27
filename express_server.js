@@ -1,6 +1,8 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
+
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -113,7 +115,7 @@ app.post("/urls", (req, res) => {
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   const user = req.cookies["user_id"];
-  if (!users[user] || urlDatabase[req.params.id]['userID'] === user) {
+  if (!users[user] || urlDatabase[req.params.shortURL]['userID'] !== user) {
     res.status(403).send('You can only delete URLs that belong to you.');
   }
   delete urlDatabase[req.params.shortURL];
@@ -131,7 +133,10 @@ app.post("/login", (req, res) => {
     return;
   }
   const user = emailLookup(req.body.email);
-  if (users[user]['password'] !== req.body.password) {
+  console.log('DATA');
+  console.log(users[user]['password']);
+  console.log('DATA');
+  if (!bcrypt.compareSync(req.body.password, users[user]['password'])) {
     res.status(403).send("The password you entered is incorrect.");
   }
   res.cookie('user_id', user);
@@ -148,9 +153,11 @@ app.post("/register", (req, res) => {
     res.status(400).send('Registration details empty, or the user already exists.');
   }
   const id = generateRandomString();
+  const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   users[id] = {
     email: req.body.email,
-    password: req.body.password
+    password: hashedPassword
   };
   res.cookie('user_id', id);
   res.redirect("/urls");
