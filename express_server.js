@@ -52,9 +52,9 @@ const generateRandomString = () => {
   return output;
 };
 
-const emailLookup = (email) => {
-  for (let user in users) {
-    if (users[user]['email'] === email) {
+const getUserByEmail = (email, database) => {
+  for (let user in database) {
+    if (database[user]['email'] === email) {
       return user;
     }
   }
@@ -72,8 +72,6 @@ const urlsForUser = (id) => {
 };
 
 
-
-
 // ROUTES
 app.get("/", (req, res) => {
   res.redirect("/urls");
@@ -85,7 +83,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlsForUser(req.userID), user: req.currentUser, id: req.userID };
+  const templateVars = { urls: urlsForUser(req.userID), user: req.currentUser };
   res.render("urls_index", templateVars);
 });
 
@@ -96,7 +94,6 @@ app.get("/urls/new", (req, res) => {
   const templateVars = { user: req.currentUser };
   res.render("urls_new", templateVars);
 });
-
 
 app.get("/login", (req, res) => {
   const templateVars = { user: req.currentUser };
@@ -137,7 +134,7 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  if (!req.body.email || !req.body.password || emailLookup(req.body.email)) {
+  if (!req.body.email || !req.body.password || getUserByEmail(req.body.email, users)) {
     res.status(400).send('Registration details empty, or the user already exists.');
   }
   const id = generateRandomString();
@@ -152,11 +149,11 @@ app.post("/register", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  if (!emailLookup(req.body.email)) {
+  if (!getUserByEmail(req.body.email, users)) {
     res.status(403).send("The email you entered isn't connected to an account.");
     return;
   }
-  const user = emailLookup(req.body.email);
+  const user = getUserByEmail(req.body.email, users);
   if (!bcrypt.compareSync(req.body.password, users[user]['password'])) {
     res.status(403).send("The password you entered is incorrect.");
   }
