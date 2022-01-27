@@ -56,69 +56,71 @@ const urlsForUser = (id) => {
   return userURLs;
 };
 
+const currentUser = (req, res, next) => {
+  const userId = req.session['user_id'];
+  req.userID = userId;
+  req.currentUser = users[userId];
+  next();
+};
+
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
 }));
+app.use(currentUser);
 
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
+app.get("/register", (req, res) => {
+  const templateVars = { user: null };
+  res.render("register_new", templateVars);
+});
+
 app.get("/urls", (req, res) => {
-  const user = req.session['user_id'];
-  const templateVars = { urls: urlsForUser(user), user: users[user], id: user };
+  const templateVars = { urls: urlsForUser(req.userID), user: req.currentUser, id: req.userID };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = req.session['user_id'];
-  if (!users[user]) {
+  if (!req.currentUser) {
     res.redirect('/login');
   }
-  const templateVars = { user: users[user] };
+  const templateVars = { user: req.currentUser };
   res.render("urls_new", templateVars);
 });
 
-app.get("/register", (req, res) => {
-  const user = req.session['user_id'];
-  const templateVars = { user: users[user] };
-  res.render("register_new", templateVars);
-});
 
 app.get("/login", (req, res) => {
-  const user = req.session['user_id'];
-  const templateVars = { user: users[user] };
+  const templateVars = { user: req.currentUser };
   res.render("login_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  const user = req.session['user_id'];
-  if (!users[user] || urlDatabase[req.params.id]['userID'] !== user) {
+  if (!req.currentUser || urlDatabase[req.params.id]['userID'] !== req.userID) {
     res.redirect("/urls");
   }
-  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], user: users[user], id: user };
+  const templateVars = { shortURL: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], user: req.currentUser, id: req.userID };
   res.render("urls_show", templateVars);
 });
 
 
 app.post("/urls", (req, res) => {
-  const user = req.session['user_id'];
-  if (!users[user]) {
+  if (!req.currentUser) {
     res.status(403).send('You must be logged in to create new URLs.');
   }
   const short = generateRandomString();
   urlDatabase[short] = {};
   urlDatabase[short]['longURL'] = req.body.longURL;
-  urlDatabase[short]['userID'] = user;
+  urlDatabase[short]['userID'] = req.userID;
   res.redirect(`urls/${short}`);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user = req.session['user_id'];
-  if (!users[user] || urlDatabase[req.params.shortURL]['userID'] !== user) {
+  if (!req.currentUser || urlDatabase[req.params.shortURL]['userID'] !== req.userID) {
     res.status(403).send('You can only delete URLs that belong to you.');
   }
   delete urlDatabase[req.params.shortURL];
