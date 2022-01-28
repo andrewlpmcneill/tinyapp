@@ -4,15 +4,20 @@ const express = require("express");
 const cookieSession = require("cookie-session");
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
+const methodOverride = require('method-override');
+const morgan = require('morgan');
 const app = express();
 const PORT = 8080;
-const { generateRandomString, getUserByEmail, urlsForUser } = require('./helpers.js');
+const { generateRandomString, getUserByEmail, urlsForUser, timeStamp } = require('./helpers.js');
 app.set("view engine", "ejs");
+app.set('trust proxy', 1);
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
 }));
+app.use(methodOverride('_method'));
+app.use(morgan('tiny'));
 const currentUser = (req, res, next) => { // Custom middleware - keeps routes DRY
   const userId = req.session['user_id'];
   req.userID = userId;
@@ -94,13 +99,17 @@ app.post("/urls", (req, res) => {
     res.status(403).send('You must be logged in to create new URLs.');
   }
   const short = generateRandomString();
-  urlDatabase[short] = {};
-  urlDatabase[short]['longURL'] = req.body.longURL;
-  urlDatabase[short]['userID'] = req.userID;
+  urlDatabase[short] = {
+    longURL: req.body.longURL,
+    userID: req.userID,
+    views: 0,
+    viewers: [],
+    timeStamp: []
+  };
   res.redirect(`urls/${short}`);
 });
 
-// New URL, renders view to create new URL
+// New URL page
 app.get("/urls/new", (req, res) => {
   if (!req.currentUser) {
     res.redirect('/login');
@@ -111,28 +120,47 @@ app.get("/urls/new", (req, res) => {
 
 // Redirects to desired long URL using short URL
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL]['longURL'];
+  const URL_ID = urlDatabase[req.params.shortURL];
+  const longURL = URL_ID['longURL'];
+  
+  // ***STRETCH BEGINS*** //
+  // Add 1 to total views
+  URL_ID['views']++;
+  // Add 1 to unique views, only if unique
+  if (!URL_ID['viewers'].includes(req.userID)) {
+    URL_ID['viewers'].push(req.userID);
+  // Every 'guest' view counts as unique
+  } else if (!req.userID) {
+    URL_ID['viewers'].push(generateRandomString());
+  }
+  // Add viewer ID ('guest' if not a registered user) and timestamp to each visit
+  if (!req.userID) {
+    URL_ID['timeStamp'].push(['guest', timeStamp()]);
+  } else {
+    URL_ID['timeStamp'].push([req.userID, timeStamp()]);
+  }
+  // ***STRETCH ENDS*** //
   res.redirect(longURL);
 });
 
-
 // Individual URL page, allows re-mapping of long URL
 app.get("/urls/:shortURL", (req, res) => {
-  if (!req.currentUser || urlDatabase[req.params.shortURL]['userID'] !== req.userID) {
+  const URL_ID = urlDatabase[req.params.shortURL];
+  if (!req.currentUser || URL_ID['userID'] !== req.userID) {
     res.redirect("/urls");
   }
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]['longURL'], user: req.currentUser, id: req.userID };
+  const templateVars = { shortURL: req.params.shortURL, longURL: URL_ID['longURL'], user: req.currentUser, viewCount: URL_ID['views'], viewers: URL_ID['viewers'].length, timeStamp: URL_ID['timeStamp'] };
   res.render("urls_show", templateVars);
 });
 
 // Updates database with new longURL
-app.post("/urls/:shortURL", (req, res) => {
+app.put("/urls/:shortURL", (req, res) => {
   urlDatabase[req.params.shortURL]['longURL'] = req.body.newURL;
   res.redirect("/urls");
 });
 
 // Deletes an entry in URL database, redirects to URLs list
-app.post("/urls/:shortURL/delete", (req, res) => {
+app.delete("/urls/:shortURL/delete", (req, res) => {
   if (!req.currentUser || urlDatabase[req.params.shortURL]['userID'] !== req.userID) {
     res.status(403).send('You can only delete URLs that belong to you.');
   }
