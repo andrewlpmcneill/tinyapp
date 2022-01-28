@@ -16,14 +16,32 @@
       <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
     </div>
     <div class="card-footer text-muted">
-      <h2>Edit</h2>
-      <form class="form" method="POST" action="/urls/<%= shortURL %>">
+      <h3>Edit</h3>
+      <form class="form" method="POST" action="/urls/<%= shortURL %>?_method=PUT">
         <label for="newURL">New URL:</label>
         <input type="text" name="newURL">
         <button type="submit" class="btn btn-primary">Submit</button>
       </form>
     </div>
+    <p>Total Views: <%= viewCount %></p>
+    <p>Unique Views: <%= viewers %></p>
   </div>
+  <h4>View History:</h4>
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Visitor ID</th>
+        <th scope="col">Accessed</th>
+      </tr>
+    </thead>
+      <% for(let stamp of timeStamp) { %>
+        <tr>
+          <td><%= stamp[0] %></td>
+          <td><%= stamp[1] %></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
   <% } else { %>
   <main style="margin: 1em;">
     <h5><a href="/login">Login</a> or <a href="/register">Register</a> to edit URLs.</h5>
