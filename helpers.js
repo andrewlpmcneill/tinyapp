@@ -1,5 +1,3 @@
-
-
 const generateRandomString = () => {
   let output = '';
   while (output.length < 6) {
@@ -46,4 +44,11 @@ const urlsForUser = (id, database) => {
   return userURLs;
 };
 
-module.exports = { generateRandomString, getUserByEmail, urlsForUser };
+const timeStamp = () => {
+  const milliseconds = Date.now(); // 1575909015000
+  const dateObject = new Date(milliseconds);
+  const formattedDate = dateObject.toLocaleString({month: 'long'});
+  return formattedDate;
+};
+
+module.exports = { generateRandomString, getUserByEmail, urlsForUser, timeStamp };
