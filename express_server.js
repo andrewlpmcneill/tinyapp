@@ -131,6 +131,9 @@ app.get("/urls/new", (req, res) => {
 // Redirects to desired long URL using short URL
 app.get("/u/:shortURL", (req, res) => {
   const URL_ID = urlDatabase[req.params.shortURL];
+  if (!URL_ID) {
+    res.redirect("/login");
+  }
   const longURL = URL_ID['longURL'];
   
   // ***STRETCH BEGINS*** //
@@ -141,14 +144,11 @@ app.get("/u/:shortURL", (req, res) => {
     URL_ID['viewers'].push(req.userID);
   // Every 'guest' view counts as unique
   } else if (!req.userID) {
-    URL_ID['viewers'].push(generateRandomString());
+    req.session['user_id'] = generateRandomString();
+    URL_ID['viewers'].push(req.session['user_id']);
   }
   // Add viewer ID ('guest' if not a registered user) and timestamp to each visit
-  if (!req.userID) {
-    URL_ID['timeStamp'].push(['guest', timeStamp()]);
-  } else {
-    URL_ID['timeStamp'].push([req.userID, timeStamp()]);
-  }
+  URL_ID['timeStamp'].push([req.userID, timeStamp()]);
   // ***STRETCH ENDS*** //
   res.redirect(longURL);
 });
