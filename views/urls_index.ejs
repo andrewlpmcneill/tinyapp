@@ -21,27 +21,40 @@
           <th scope="col">Long URL</th>
           <th scope="col">Edit</th>
           <th scope="col">Delete</th>
+          <th scope="col">Created</th>
+          <th scope="col">Total Visits</th>
+          <th scope="col">Unique Visits</th>
         </tr>
       </thead>
       <tbody>
         <% for(let url in urls) { %>
           <tr>
+            <!-- SHORT URL -->
             <td><%= url %></td>
+            <!-- LONG URL -->
             <td><%= urls[url] %></td>
+            <!-- EDIT -->
             <td>
               <form class="form" method="GET" action="/urls/<%- url %>">
                 <button type="submit" class="btn btn-outline-primary">Edit</button>
               </form>
             </td>
+            <!-- DELETE -->
             <td>
               <form class="form" method="POST" action="/urls/<%- url %>/delete?_method=DELETE">
                 <button type="submit" class="btn btn-outline-danger">Delete</button>
               </form>
             </td>
+            <td><%= urlDatabase[url]['created'] %></td>
+            <!-- TOTAL VISITS -->
+            <td><%= urlDatabase[url]['views'] %></td>
+            <!-- UNIQUE VISITS -->
+            <td><%= urlDatabase[url]['viewers'].length %></td>
           </tr>
         <% } %>
       </tbody>
     </table>
+    <a href="/urls/new">Create a New Short Link</a>
     <% } else { %>
     <h5>You can only view and edit URLs you have created.</h5>
     <h5><a href="/login">Login</a> or <a href="/register">Register</a> to start adding or editing URLs.</h5>
