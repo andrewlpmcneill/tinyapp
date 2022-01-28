@@ -37,11 +37,17 @@ const users = {};
 
 // Root, redirects to /urls
 app.get("/", (req, res) => {
-  res.redirect("/urls");
+  if (req.userID) {
+    res.redirect("/urls");
+  }
+  res.redirect("/login");
 });
 
 // Registration, renders registration view
 app.get("/register", (req, res) => {
+  if (req.userID) {
+    res.redirect("/urls");
+  }
   const templateVars = { user: null };
   res.render("register_new", templateVars);
 });
@@ -63,6 +69,9 @@ app.post("/register", (req, res) => {
 
 // Login, renders login view
 app.get("/login", (req, res) => {
+  if (req.userID) {
+    res.redirect("/urls");
+  }
   const templateVars = { user: req.currentUser };
   res.render("login_new", templateVars);
 });
@@ -89,7 +98,7 @@ app.post("/logout", (req, res) => {
 
 // URL List, lists users URLs, allows editing and deleting
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlsForUser(req.userID, urlDatabase), user: req.currentUser };
+  const templateVars = { urls: urlsForUser(req.userID, urlDatabase), user: req.currentUser, urlDatabase: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
@@ -102,6 +111,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[short] = {
     longURL: req.body.longURL,
     userID: req.userID,
+    created: timeStamp(),
     views: 0,
     viewers: [],
     timeStamp: []
@@ -146,8 +156,11 @@ app.get("/u/:shortURL", (req, res) => {
 // Individual URL page, allows re-mapping of long URL
 app.get("/urls/:shortURL", (req, res) => {
   const URL_ID = urlDatabase[req.params.shortURL];
+  if (!URL_ID) {
+    res.send('ShortURL not found. Please enter an existing shortURL.');
+  }
   if (!req.currentUser || URL_ID['userID'] !== req.userID) {
-    res.redirect("/urls");
+    res.send("You can only view shortURLs that you have created.");
   }
   const templateVars = { shortURL: req.params.shortURL, longURL: URL_ID['longURL'], user: req.currentUser, viewCount: URL_ID['views'], viewers: URL_ID['viewers'].length, timeStamp: URL_ID['timeStamp'] };
   res.render("urls_show", templateVars);
