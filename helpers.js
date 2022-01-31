@@ -1,28 +1,6 @@
 const generateRandomString = () => {
-  let output = '';
-  while (output.length < 6) {
-    const gate = Math.ceil(Math.random() * 2);
-    let number = '';
-    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-    let letter = '';
-    let upperOrLower = Math.ceil(Math.random() * 2);
-    
-    switch (gate) {
-    case 1:
-      number = Math.floor(Math.random() * 10);
-      output += String(number);
-      break;
-    case 2:
-      letter = alphabet[Math.floor(Math.random() * alphabet.length)];
-      if (upperOrLower === 1) {
-        output += letter;
-        break;
-      }
-      output += letter.toUpperCase();
-      break;
-    }
-  }
-  return output;
+  // Produces a random alphanumeric (base 36) string of length 6
+  return Math.random().toString(36).slice(2, 8);
 };
 
 const getUserByEmail = (email, database) => {
