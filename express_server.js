@@ -35,25 +35,21 @@ const users = {};
 
 // ROUTES
 
-// Root, redirects to /urls
+// Root, redirects to /urls unless user is unvalidated
 app.get("/", (req, res) => {
-  // If user is already logged in, redirect to URL database view
   if (req.userID) {
     res.redirect("/urls");
     return;
   }
-  // If user is not logged in, redirect to login page
   res.redirect("/login");
 });
 
-// Registration, renders registration view
+// Registration, renders registration view unless user is already validated
 app.get("/register", (req, res) => {
-  // If user is already logged in, redirect to URL database view
   if (req.userID && req.currentUser) {
     res.redirect("/urls");
     return;
   }
-  // If user is not logged in, render registration view
   const templateVars = {
     user: null
   };
@@ -78,32 +74,29 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
-// Login, renders login view
+// Login, renders login view, unless user is already validated
 app.get("/login", (req, res) => {
-  // If user is already logged in, redirect to URL database view
   if (req.userID && req.currentUser) {
     res.redirect("/urls");
     return;
   }
-  // Otherwise, render the login view
   const templateVars = { user: req.currentUser };
   res.render("login_new", templateVars);
 });
 
-// Login, validates user, creates encrypted cookie
+// Login, validates user, creates encrypted cookie, unless login details are invalid
 app.post("/login", (req, res) => {
   const user = getUserByEmail(req.body.email, users);
-  // If the email isn't created, send error
+  // Email not in database
   if (!user) {
     res.status(404).send("The email you entered isn't connected to an account.");
     return;
   }
-  // If the password doesn't match, send error
+  // Password doesn't match:
   if (!bcrypt.compareSync(req.body.password, users[user]['password'])) {
     res.status(403).send("The password you entered is incorrect.");
     return;
   }
-  // If the email and password match, set a cookie and redirect to URL database view
   req.session['user_id'] = user;
   res.redirect("/urls");
 });
@@ -111,17 +104,16 @@ app.post("/login", (req, res) => {
 // Logout, wipes cookie, ends session
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect("/urls");
+  res.redirect("/");
 });
 
-// URL List, lists users URLs, allows editing and deleting
+// URL List, lists users URLs, allows editing and deleting, or handles unvalidated users
 app.get("/urls", (req, res) => {
-  // If user is not logged in, redirect to login
+  // If user is not logged in, send error message
   if (!req.currentUser) {
-    res.redirect("/login");
+    res.status(404).send("To view or create URLs, please log in or register an account first.");
     return;
   }
-  // If user is logged in, show their URLs
   const templateVars = {
     urls: urlsForUser(req.userID, urlDatabase),
     user: req.currentUser,
@@ -130,9 +122,8 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-// Creates URL, generates unique ID, stores as JSON
+// Creates URL, generates unique ID, stores as JSON, or handles unvalidated users
 app.post("/urls", (req, res) => {
-  // If user is not logged in, send error
   if (!req.currentUser) {
     res.status(403).send('You must be logged in to create new URLs.');
     return;
@@ -150,25 +141,22 @@ app.post("/urls", (req, res) => {
   res.redirect(`urls/${shortURL}`);
 });
 
-// New URL page
+// New URL page, or handles unvalidated users
 app.get("/urls/new", (req, res) => {
-  // If the user is not logged in, redirect them to login
   if (!req.currentUser) {
     res.redirect('/login');
     return;
   }
-  // If the user is logged in, render the new URL view
   const templateVars = {
     user: req.currentUser
   };
   res.render("urls_new", templateVars);
 });
 
-// Redirects to desired long URL using short URL
+// Redirects to desired long URL using short URL, handles invalid URLs
 app.get("/u/:shortURL", (req, res) => {
   // Look up the URL in the database
   const URL_ID = urlDatabase[req.params.shortURL];
-  // If the URL is an invalid address or does not exist, send error
   if (!URL_ID) {
     res.status(404).send('This short URL does not exist or does not point to a valid address. Please try again with a valid short URL.');
     return;
@@ -190,25 +178,21 @@ app.get("/u/:shortURL", (req, res) => {
   URL_ID['timeStamp'].push([req.userID, timeStamp()]);
   // ***STRETCH ENDS*** //
 
-  // Redirect to the specified URL
   const longURL = URL_ID['longURL'];
   res.redirect(longURL);
 });
 
-// Individual URL page, allows re-mapping of long URL
+// Individual URL page, allows re-mapping of long URLs, handles invalid URLs and unvalidated users
 app.get("/urls/:shortURL", (req, res) => {
   const URL_ID = urlDatabase[req.params.shortURL];
-  // If the short URL is not in the database, send an error
   if (!URL_ID) {
     res.status(404).send('ShortURL not found. Please enter an existing shortURL.');
     return;
   }
-  // If the user is not logged in or the short URL was not created by the user, send an error
   if (!req.currentUser || URL_ID['userID'] !== req.userID) {
     res.status(403).send("You can only view or edit shortURLs that you have created.");
     return;
   }
-  // If the user created the URL, render the URL view
   const templateVars = {
     shortURL: req.params.shortURL,
     longURL: URL_ID['longURL'],
