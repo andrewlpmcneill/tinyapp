@@ -37,7 +37,7 @@ const users = {};
 
 // Root, redirects to /urls unless user is unvalidated
 app.get("/", (req, res) => {
-  if (req.userID) {
+  if (req.userID && req.currentUser) {
     res.redirect("/urls");
     return;
   }
